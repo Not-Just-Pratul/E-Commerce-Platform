@@ -23,7 +23,7 @@ Ensure you have the following installed:
 ### Steps
 ```sh
 # Clone the repository
-git clone https://github.com/ScreenSlauth/E-Commerce-Platform.git
+git clone https://github.com/not-just-pratul/E-Commerce-Platform.git
 
 # Navigate to the project folder
 cd E-Commerce-Platform
