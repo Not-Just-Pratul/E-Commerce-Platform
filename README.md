@@ -59,5 +59,5 @@ Contributions are welcome! To contribute:
 4. Open a pull request.
 
 ## Contact
-For support or inquiries, reach out to [ScreenSlauth](https://github.com/ScreenSlauth).
+For support or inquiries, reach out to [Enquiry](https://pratul.vercel.app).
 
