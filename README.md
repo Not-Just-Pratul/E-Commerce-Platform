@@ -2,7 +2,13 @@
 
 A modern, fully-featured e-commerce platform built with cutting-edge web technologies. This application delivers a seamless shopping experience with an intuitive user interface, secure authentication, and robust product management capabilities.
 
-**[Live Demo](https://shophub-myproject.vercel.app/)** • [Documentation](#documentation) • [Contributing](#contributing)
+ • [Documentation](#documentation) • [Contributing](#contributing)
+
+ ## 🌐 Deployment
+
+The application is deployed on [Vercel](https://vercel.com/) and is live at:
+
+**[https://shophub-myproject.vercel.app/](https://shophub-myproject.vercel.app/)**
 
 ## Overview
 
@@ -83,11 +89,6 @@ pnpm run start
 
 The production-ready application will be optimized and ready for deployment.
 
-## 🌐 Deployment
-
-The application is deployed on [Vercel](https://vercel.com/) and is live at:
-
-**[https://shophub-myproject.vercel.app/](https://shophub-myproject.vercel.app/)**
 
 To deploy your own instance:
 
