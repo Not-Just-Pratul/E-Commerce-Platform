@@ -11,7 +11,7 @@ export async function GET(req: Request) {
 
   const result = await query(
     `
-      SELECT c.id, c.user_id, p.id AS product_id, p.name, p.price, p.image_url, ci.quantity
+      SELECT p.id AS id, p.id AS product_id, p.name, p.price, p.image_url AS image, ci.quantity
       FROM carts c
       JOIN cart_items ci ON ci.cart_id = c.id
       JOIN products p ON p.id = ci.product_id
@@ -49,6 +49,29 @@ export async function POST(req: Request) {
       WHERE user_id = $1
       ON CONFLICT (cart_id, product_id, variant_id)
       DO UPDATE SET quantity = cart_items.quantity + EXCLUDED.quantity
+    `,
+    [userId, productId, quantity],
+  )
+
+  return NextResponse.json({ success: true })
+}
+
+export async function PATCH(req: Request) {
+  const body = await req.json()
+  const { userId, productId, quantity } = body
+
+  if (!userId || !productId || typeof quantity !== "number") {
+    return NextResponse.json({ error: "userId, productId, and quantity are required" }, { status: 400 })
+  }
+
+  await query(
+    `
+      UPDATE cart_items
+      SET quantity = $3
+      FROM carts
+      WHERE cart_items.cart_id = carts.id
+        AND carts.user_id = $1
+        AND cart_items.product_id = $2
     `,
     [userId, productId, quantity],
   )
