@@ -1,73 +1,70 @@
 "use server"
 
 import { cookies } from "next/headers"
-import { users } from "./data"
+import { query } from "@/lib/db"
 
 export async function login(email: string, password: string) {
-  // First check if there's a registered user in localStorage
-  const registeredUser = localStorage.getItem("user")
-  if (registeredUser) {
-    const user = JSON.parse(registeredUser)
-    if (user.email === email) {
-      // In a real app, you would hash the password and compare with the stored hash
-      // Set a cookie to indicate the user is logged in
-      cookies().set("userId", user.id.toString(), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 24 * 7, // 1 week
-        path: "/",
-      })
+  const result = await query(
+    `
+      SELECT id, name, email, avatar_url, password_hash
+      FROM users
+      WHERE email = $1
+      LIMIT 1
+    `,
+    [email],
+  )
 
-      return { success: true, user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar } }
-    }
+  const user = result.rows[0]
+
+  if (!user || user.password_hash !== password) {
+    return { success: false, error: "Invalid email or password" }
   }
 
-  // If no match in localStorage, check the predefined users
-  const user = users.find((u) => u.email === email && u.password === password)
+  const cookieStore = await cookies()
+  cookieStore.set("userId", user.id.toString(), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 7,
+    path: "/",
+    sameSite: "lax",
+  })
 
-  if (user) {
-    // Set a cookie to indicate the user is logged in
-    cookies().set("userId", user.id.toString(), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      path: "/",
-    })
-
-    return { success: true, user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar } }
+  return {
+    success: true,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar_url,
+    },
   }
-
-  return { success: false, error: "Invalid email or password" }
 }
 
 export async function logout() {
-  cookies().delete("userId")
+  const cookieStore = await cookies()
+  cookieStore.delete("userId")
   return { success: true }
 }
 
 export async function getCurrentUser() {
-  const userId = cookies().get("userId")?.value
+  const cookieStore = await cookies()
+  const userId = cookieStore.get("userId")?.value
 
   if (!userId) {
     return null
   }
 
-  // Check localStorage first
-  const registeredUser = localStorage.getItem("user")
-  if (registeredUser) {
-    const user = JSON.parse(registeredUser)
-    if (user.id.toString() === userId) {
-      return {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar,
-      }
-    }
-  }
+  const result = await query(
+    `
+      SELECT id, name, email, avatar_url
+      FROM users
+      WHERE id = $1
+      LIMIT 1
+    `,
+    [userId],
+  )
 
-  // Then check predefined users
-  const user = users.find((u) => u.id.toString() === userId)
+  const user = result.rows[0]
 
   if (!user) {
     return null
@@ -77,7 +74,7 @@ export async function getCurrentUser() {
     id: user.id,
     name: user.name,
     email: user.email,
-    avatar: user.avatar,
+    avatar: user.avatar_url,
   }
 }
 
