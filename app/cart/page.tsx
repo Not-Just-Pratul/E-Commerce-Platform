@@ -19,53 +19,101 @@ export default function CartPage() {
   const [cartItems, setCartItems] = useState<any[]>([])
   const [couponCode, setCouponCode] = useState("")
   const [discount, setDiscount] = useState(0)
+  const [userId, setUserId] = useState<number | null>(null)
 
   useEffect(() => {
-    // Get cart from localStorage
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]")
-    setCartItems(cart)
-
-    // Listen for storage events (cart updates)
-    const handleStorageChange = () => {
-      const updatedCart = JSON.parse(localStorage.getItem("cart") || "[]")
-      setCartItems(updatedCart)
+    const loadCurrentUser = async () => {
+      try {
+        const response = await fetch("/api/auth/me")
+        const result = await response.json()
+        if (result?.user?.id) {
+          setUserId(result.user.id)
+        } else {
+          setUserId(1)
+        }
+      } catch {
+        setUserId(1)
+      }
     }
 
-    window.addEventListener("storage", handleStorageChange)
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange)
+    const loadCart = async () => {
+      const currentUserId = userId ?? 1
+      const response = await fetch(`/api/cart?userId=${currentUserId}`)
+      const data = await response.json()
+      setCartItems(data)
     }
-  }, [])
 
-  const updateQuantity = (id: number, change: number) => {
+    loadCurrentUser().finally(() => {
+      loadCart()
+    })
+  }, [userId])
+
+  const updateQuantity = async (id: number, change: number) => {
+    const currentItem = cartItems.find((item) => item.id === id)
+    if (!currentItem) return
+
+    const newQuantity = currentItem.quantity + change
+    if (newQuantity < 1) return
+
+    const response = await fetch("/api/cart", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userId: userId ?? 1,
+        productId: id,
+        quantity: newQuantity,
+      }),
+    })
+
+    if (!response.ok) {
+      toast({
+        title: "Cart update failed",
+        description: "Unable to update the cart.",
+      })
+      return
+    }
+
     const updatedCart = cartItems.map((item) => {
       if (item.id === id) {
-        const newQuantity = item.quantity + change
-        if (newQuantity < 1) return item // Don't allow quantity below 1
         return { ...item, quantity: newQuantity }
       }
       return item
     })
 
     setCartItems(updatedCart)
-    localStorage.setItem("cart", JSON.stringify(updatedCart))
-
-    // Force refresh header to update cart count
     window.dispatchEvent(new Event("storage"))
   }
 
-  const removeItem = (id: number) => {
+  const removeItem = async (id: number) => {
+    const response = await fetch("/api/cart", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userId: userId ?? 1,
+        productId: id,
+      }),
+    })
+
+    if (!response.ok) {
+      toast({
+        title: "Remove failed",
+        description: "Unable to remove item from cart.",
+      })
+      return
+    }
+
     const updatedCart = cartItems.filter((item) => item.id !== id)
     setCartItems(updatedCart)
-    localStorage.setItem("cart", JSON.stringify(updatedCart))
 
     toast({
       title: "Item removed",
       description: "The item has been removed from your cart",
     })
 
-    // Force refresh header to update cart count
     window.dispatchEvent(new Event("storage"))
   }
 

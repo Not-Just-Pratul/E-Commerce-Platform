@@ -14,7 +14,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from "@/components/ui/separator"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { login } from "@/lib/auth"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -30,15 +29,24 @@ export default function LoginPage() {
     setError("")
 
     try {
-      const result = await login(email, password)
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      })
 
-      if (result.success) {
-        router.push("/account")
-        router.refresh()
-      } else {
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
         setError(result.error || "Login failed")
+        return
       }
-    } catch (err) {
+
+      router.push("/account")
+      router.refresh()
+    } catch {
       setError("An unexpected error occurred")
     } finally {
       setIsLoading(false)

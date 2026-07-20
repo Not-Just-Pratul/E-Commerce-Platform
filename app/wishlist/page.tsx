@@ -18,75 +18,90 @@ import { allProducts } from "@/lib/data"
 export default function WishlistPage() {
   const router = useRouter()
   const [wishlistProducts, setWishlistProducts] = useState<any[]>([])
+  const [userId, setUserId] = useState<number | null>(null)
 
   useEffect(() => {
-    // Get wishlist from localStorage
-    const wishlistIds = JSON.parse(localStorage.getItem("wishlist") || "[]")
+    const loadCurrentUser = async () => {
+      try {
+        const response = await fetch("/api/auth/me")
+        const result = await response.json()
+        if (result?.user?.id) {
+          setUserId(result.user.id)
+        } else {
+          setUserId(1)
+        }
+      } catch {
+        setUserId(1)
+      }
+    }
 
-    // Get products for these IDs
-    const products = wishlistIds.map((id: number) => allProducts.find((product) => product.id === id)).filter(Boolean)
+    const loadWishlist = async () => {
+      const currentUserId = userId ?? 1
+      const response = await fetch(`/api/wishlist?userId=${currentUserId}`)
+      const data = await response.json()
+      setWishlistProducts(data)
+    }
 
-    setWishlistProducts(products)
-  }, [])
+    loadCurrentUser().finally(() => {
+      loadWishlist()
+    })
+  }, [userId])
 
-  const removeFromWishlist = (id: number, e: React.MouseEvent) => {
+  const removeFromWishlist = async (id: number, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
 
-    // Get current wishlist
-    const wishlist = JSON.parse(localStorage.getItem("wishlist") || "[]")
+    const response = await fetch("/api/wishlist", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId: userId ?? 1, productId: id }),
+    })
 
-    // Remove product
-    const newWishlist = wishlist.filter((productId: number) => productId !== id)
+    if (!response.ok) {
+      toast({
+        title: "Remove failed",
+        description: "Unable to remove item from wishlist.",
+      })
+      return
+    }
 
-    // Save back to localStorage
-    localStorage.setItem("wishlist", JSON.stringify(newWishlist))
-
-    // Update state
-    setWishlistProducts(wishlistProducts.filter((product) => product.id !== id))
+    setWishlistProducts(wishlistProducts.filter((product) => product.product_id !== id))
 
     toast({
       title: "Removed from wishlist",
       description: "The item has been removed from your wishlist",
     })
 
-    // Force refresh header
     window.dispatchEvent(new Event("storage"))
   }
 
-  const addToCart = (id: number, name: string, price: number, image: string, e: React.MouseEvent) => {
+  const addToCart = async (id: number, name: string, price: number, image: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
 
-    // Get current cart from localStorage
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]")
+    const response = await fetch("/api/cart", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId: userId ?? 1, productId: id, quantity: 1 }),
+    })
 
-    // Check if product already in cart
-    const existingItem = cart.find((item: any) => item.id === id)
-
-    if (existingItem) {
-      // Increment quantity
-      existingItem.quantity += 1
-    } else {
-      // Add new item
-      cart.push({
-        id,
-        name,
-        price,
-        image,
-        quantity: 1,
+    if (!response.ok) {
+      toast({
+        title: "Add to cart failed",
+        description: "Unable to add item to cart.",
       })
+      return
     }
-
-    // Save back to localStorage
-    localStorage.setItem("cart", JSON.stringify(cart))
 
     toast({
       title: "Added to cart",
       description: `${name} has been added to your cart`,
     })
 
-    // Force refresh header to update cart count
     window.dispatchEvent(new Event("storage"))
   }
 

@@ -49,17 +49,23 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
-      // In a real app, this would call an API endpoint
-      // For now, we'll simulate a successful registration by storing in localStorage
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          id: Math.floor(Math.random() * 1000),
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           name: values.name,
           email: values.email,
-          avatar: "/placeholder.svg?height=64&width=64",
+          password: values.password,
         }),
-      )
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || "Registration failed")
+      }
 
       toast({
         title: "Account created!",
@@ -71,7 +77,7 @@ export default function RegisterPage() {
       toast({
         variant: "destructive",
         title: "Registration failed",
-        description: "There was a problem with your registration.",
+        description: error instanceof Error ? error.message : "There was a problem with your registration.",
       })
     } finally {
       setIsLoading(false)
