@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "vercel-build": "pnpm approve-builds --yes || true && pnpm run build",
+    "vercel-build": "pnpm approve-builds --all || true && pnpm run build",
     "start": "next start",
     "lint": "next lint"
   },

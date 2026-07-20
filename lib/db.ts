@@ -2,18 +2,20 @@ import { Pool } from "pg"
 
 const connectionString = process.env.DATABASE_URL
 
-if (!connectionString) {
-  throw new Error("DATABASE_URL is not defined. Add your Neon Postgres connection string to .env.local")
-}
-
-export const pool = new Pool({
-  connectionString,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-})
+export const pool = connectionString
+  ? new Pool({
+      connectionString,
+      ssl: {
+        rejectUnauthorized: false,
+      },
+    })
+  : null
 
 export async function query(text: string, params: unknown[] = []) {
+  if (!pool) {
+    throw new Error("DATABASE_URL is not defined. Add your Neon Postgres connection string to .env.local")
+  }
+
   return pool.query(text, params)
 }
 
